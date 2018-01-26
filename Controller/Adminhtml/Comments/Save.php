@@ -24,7 +24,7 @@ class Save extends Action
     /**
      * Save constructor.
      *
-     * @param \Action\Context            $context
+     * @param Action\Context             $context
      * @param Comments                   $model
      * @param ProductRepositoryInterface $productRepository
      */
@@ -52,9 +52,17 @@ class Save extends Action
         if ($data) {
 
             $productId = $this->getRequest()->getParam('product_id'); // change to your product id real param name
-            $this->productRepository->getById($productId);
+            try {
+                $this->productRepository->getById($productId);
+            } catch (\Magento\Framework\Exception\NoSuchEntityException $e) {
+                // In case there is no product: display error message and redirect back
+                $this->messageManager->addError($e->getMessage());
+                $this->_getSession()->setFormData($data);
 
-            /** @var \Vendor\Module\Model\Comments $model */
+                return $resultRedirect->setPath('*/*/edit', ['comment_id' => $this->getRequest()->getParam('id')]);
+            }
+
+            /** @var \Magebit\ProductComments\Model\Comments $model */
             $model = $this->_model;
 
             $id = $this->getRequest()->getParam('id');
@@ -78,11 +86,6 @@ class Save extends Action
                 }
 
                 return $resultRedirect->setPath('*/*/');
-            } catch (\Magento\Framework\Exception\NoSuchEntityException $e) {
-                // In case there is no product: display error message and redirect back
-                $this->messageManager->addError($e->getMessage());
-
-                return $resultRedirect->setPath('*/*/*');
             } catch (\Magento\Framework\Exception\LocalizedException $e) {
                 $this->messageManager->addError($e->getMessage());
             } catch (\RuntimeException $e) {
